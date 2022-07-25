@@ -11,9 +11,13 @@ import lombok.ToString;
 @AllArgsConstructor
 @ToString
 public enum RespBeanEnum {
+    // 通用枚举
     SUCCESS(200, "SUCCESS"),
-    Error(500, "服务端异常");
-
+    Error(500, "服务端异常"),
+    // 登录模块枚举
+    LOGINERROR(500210, "用户名或密码错误"),
+    // 手机校验枚举
+    MOBILEERROR(500211, "手机号码格式错误");
 
     private final Integer code;
     private final String message;
