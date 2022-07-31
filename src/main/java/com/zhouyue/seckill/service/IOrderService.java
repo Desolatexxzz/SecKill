@@ -2,6 +2,8 @@ package com.zhouyue.seckill.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.zhouyue.seckill.pojo.Order;
+import com.zhouyue.seckill.pojo.User;
+import com.zhouyue.seckill.vo.GoodsVo;
 
 /**
  * <p>
@@ -13,4 +15,11 @@ import com.zhouyue.seckill.pojo.Order;
  */
 public interface IOrderService extends IService<Order> {
 
+    /**
+     * 秒杀商品
+     * @param user
+     * @param goodsVo
+     * @return
+     */
+    Order seckill(User user, GoodsVo goodsVo);
 }
