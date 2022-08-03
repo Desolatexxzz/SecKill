@@ -12,6 +12,7 @@ import com.zhouyue.seckill.vo.GoodsVo;
 import com.zhouyue.seckill.vo.RespBean;
 import com.zhouyue.seckill.vo.RespBeanEnum;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,6 +29,8 @@ public class SecKillController {
     private ISeckillOrderService seckillOrderService;
     @Autowired
     private IOrderService orderService;
+    @Autowired
+    private RedisTemplate redisTemplate;
     /**
      * 秒杀
      * @param model
@@ -48,7 +51,8 @@ public class SecKillController {
             return "secKillFail";
         }
         //判断订单，该用户是否已购买
-        SeckillOrder seckillOrder = seckillOrderService.getOne(new QueryWrapper<SeckillOrder>().eq("user_id", user.getId()).eq("goods_id", goodsId));
+//        SeckillOrder seckillOrder = seckillOrderService.getOne(new QueryWrapper<SeckillOrder>().eq("user_id", user.getId()).eq("goods_id", goodsId));
+        SeckillOrder seckillOrder = (SeckillOrder) redisTemplate.opsForValue().get("order:" + user.getId() + ":" + goodsId);
         if (seckillOrder != null){
             model.addAttribute("errmsg", RespBeanEnum.REPEATEERROR.getMessage());
             return "secKillFail";
