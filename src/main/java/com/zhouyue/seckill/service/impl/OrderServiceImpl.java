@@ -3,15 +3,19 @@ package com.zhouyue.seckill.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.zhouyue.seckill.exception.GlobalException;
 import com.zhouyue.seckill.mapper.OrderMapper;
 import com.zhouyue.seckill.pojo.Order;
 import com.zhouyue.seckill.pojo.SeckillGoods;
 import com.zhouyue.seckill.pojo.SeckillOrder;
 import com.zhouyue.seckill.pojo.User;
+import com.zhouyue.seckill.service.IGoodsService;
 import com.zhouyue.seckill.service.IOrderService;
 import com.zhouyue.seckill.service.ISeckillGoodsService;
 import com.zhouyue.seckill.service.ISeckillOrderService;
 import com.zhouyue.seckill.vo.GoodsVo;
+import com.zhouyue.seckill.vo.OrderDetailVo;
+import com.zhouyue.seckill.vo.RespBeanEnum;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -37,6 +41,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     private ISeckillOrderService seckillOrderService;
     @Autowired
     private RedisTemplate redisTemplate;
+    @Autowired
+    private IGoodsService goodsService;
 
     /**
      * 秒杀商品
@@ -78,6 +84,27 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
         redisTemplate.opsForValue().set("order:" + user.getId()+":"+goodsVo.getId(), seckillOrder);
 
         return order;
+
+    }
+
+    /**
+     * 查询订单详情
+     * @param orderId
+     * @return
+     */
+    @Override
+    public OrderDetailVo detail(Long orderId) {
+        if (orderId == null){
+            throw new GlobalException(RespBeanEnum.ORDERNOTEXIST);
+        }
+        Order order = orderMapper.selectById(orderId);
+        GoodsVo goodsVo = goodsService.findGoodsVoByGoodsId(order.getGoodsId());
+        OrderDetailVo detailVo = new OrderDetailVo();
+        detailVo.setOrder(order);
+        detailVo.setGoodsVo(goodsVo);
+        return detailVo;
+
+
 
     }
 }

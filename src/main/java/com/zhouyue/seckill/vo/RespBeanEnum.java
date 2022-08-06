@@ -20,7 +20,9 @@ public enum RespBeanEnum {
     MOBILEERROR(500211, "手机号码格式错误"),
     BINDERROR(500212, "参数校验异常"),
     EMPTYSTOCK(500500, "库存不足"),
-    REPEATEERROR(500501, "该商品每人限购一件")
+    REPEATEERROR(500501, "该商品每人限购一件"),
+    SESSIONERROR(500215, "用户不存在"),
+    ORDERNOTEXIST(500300, "订单信息不存在")
     ;
 
 

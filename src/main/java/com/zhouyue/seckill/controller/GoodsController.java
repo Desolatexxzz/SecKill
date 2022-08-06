@@ -3,7 +3,9 @@ package com.zhouyue.seckill.controller;
 import com.zhouyue.seckill.pojo.User;
 import com.zhouyue.seckill.service.IGoodsService;
 import com.zhouyue.seckill.service.IUserService;
+import com.zhouyue.seckill.vo.DetailVo;
 import com.zhouyue.seckill.vo.GoodsVo;
+import com.zhouyue.seckill.vo.RespBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
@@ -67,17 +69,9 @@ public class GoodsController {
      * 跳转商品详情页
      * @return
      */
-    @RequestMapping(value = "/toDetail/{goodsId}", produces = "text/html;charset=utf-8")
+    @RequestMapping(value = "/toDetail/{goodsId}")
     @ResponseBody
-    public String toDetails(Model model, User user, @PathVariable Long goodsId, HttpServletRequest request, HttpServletResponse response){
-        //Redis中获取商品详情页
-        ValueOperations valueOperations = redisTemplate.opsForValue();
-        String html = (String) valueOperations.get("goodsDetail:" + goodsId);
-        if (!ObjectUtils.isEmpty(html)){
-            return html;
-        }
-
-        model.addAttribute("user", user);
+    public RespBean toDetails(User user, @PathVariable Long goodsId){
         GoodsVo goodsVo = goodsService.findGoodsVoByGoodsId(goodsId);
         Date startDate = goodsVo.getStartDate();
         Date endDate = goodsVo.getEndDate();
@@ -95,14 +89,11 @@ public class GoodsController {
             secKillStatus = 1;
             remainSeconds = 0;
         }
-        model.addAttribute("secKillStatus",secKillStatus);
-        model.addAttribute("goods", goodsVo);
-        model.addAttribute("remainSeconds", remainSeconds);
-        WebContext webContext = new WebContext(request, response, request.getServletContext(), request.getLocale(), model.asMap());
-        html = thymeleafViewResolver.getTemplateEngine().process("goodsDetail", webContext);
-        if (!ObjectUtils.isEmpty(html)){
-            valueOperations.set("goodsDetail:" + goodsId, html, 60, TimeUnit.MINUTES);
-        }
-        return html;
+        DetailVo detailVo = new DetailVo();
+        detailVo.setUser(user);
+        detailVo.setGoodsVo(goodsVo);
+        detailVo.setSecKillStatus(secKillStatus);
+        detailVo.setRemainSeconds(remainSeconds);
+        return RespBean.success(detailVo);
     }
 }
