@@ -22,7 +22,8 @@ public enum RespBeanEnum {
     EMPTYSTOCK(500500, "库存不足"),
     REPEATEERROR(500501, "该商品每人限购一件"),
     SESSIONERROR(500215, "用户不存在"),
-    ORDERNOTEXIST(500300, "订单信息不存在")
+    ORDERNOTEXIST(500300, "订单信息不存在"),
+    REQUESTILLEGAL(500502, "请求非法，请重试")
     ;
 
 

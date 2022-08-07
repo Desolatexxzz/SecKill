@@ -4,10 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zhouyue.seckill.exception.GlobalException;
-import com.zhouyue.seckill.pojo.Order;
-import com.zhouyue.seckill.pojo.SeckillMessage;
-import com.zhouyue.seckill.pojo.SeckillOrder;
-import com.zhouyue.seckill.pojo.User;
+import com.zhouyue.seckill.pojo.*;
 import com.zhouyue.seckill.rabbitmq.MQSender;
 import com.zhouyue.seckill.service.IGoodsService;
 import com.zhouyue.seckill.service.IOrderService;
@@ -20,16 +17,16 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.CollectionUtils;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 秒杀
@@ -48,25 +45,31 @@ public class SecKillController implements InitializingBean {
     @Autowired
     private MQSender mqSender;
     private Map<Long, Boolean> emptyStockMap = new HashMap<>();
+    @Autowired
+    private RedisScript<Long> script;
+    @Autowired
+    private ISeckillGoodsService seckillGoodsService;
     /**
      * 秒杀
-     * @param model
      * @param user
      * @param goodsId
      * @return
      */
-    @RequestMapping(value = "/doSeckill", method = RequestMethod.POST)
+    @RequestMapping(value = "/{path}/doSeckill", method = RequestMethod.POST)
     @ResponseBody
-    public RespBean doSecKill(Model model, User user, Long goodsId){
+    public RespBean doSecKill(@PathVariable String path,  User user, Long goodsId){
         if (user == null){
             return RespBean.error(RespBeanEnum.SESSIONERROR);
         }
-
+        // 判断路径
         ValueOperations valueOperations = redisTemplate.opsForValue();
+       boolean check = orderService.checkPath(user, goodsId, path);
+       if (!check){
+           return RespBean.error(RespBeanEnum.REQUESTILLEGAL);
+       }
         //判断订单，该用户是否已购买
         SeckillOrder seckillOrder = (SeckillOrder) redisTemplate.opsForValue().get("order:" + user.getId() + ":" + goodsId);
         if (seckillOrder != null){
-            model.addAttribute("errmsg", RespBeanEnum.REPEATEERROR.getMessage());
             return RespBean.error(RespBeanEnum.REPEATEERROR);
         }
         // 内存标记，减少redis访问
@@ -80,6 +83,12 @@ public class SecKillController implements InitializingBean {
             valueOperations.increment("seckillGoods:" + goodsId);
             return RespBean.error(RespBeanEnum.EMPTYSTOCK);
         }
+        // 使用 lua 脚本来预减库存
+//        Long stock = (Long) redisTemplate.execute(script, Collections.singletonList("seckillGoods:" + goodsId), Collections.EMPTY_LIST);
+//        if (stock < 0){
+//            emptyStockMap.put(goodsId, true);
+//            return RespBean.error(RespBeanEnum.EMPTYSTOCK);
+//        }
         //使用rabbitmq 发送消息
         SeckillMessage seckillMessage = new SeckillMessage(user, goodsId);
         ObjectMapper objectMapper = new ObjectMapper();
@@ -127,6 +136,32 @@ public class SecKillController implements InitializingBean {
     }
 
     /**
+     * 获取秒杀地址
+     * @param user
+     * @param goodsId
+     * @return
+     */
+    @RequestMapping(value = "/path", method = RequestMethod.GET)
+    @ResponseBody
+    public RespBean getPath(User user, Long goodsId){
+        // 判断商品是否为秒杀状态，在秒杀状态才返回路径
+        SeckillGoods seckillGoods = seckillGoodsService.getOne(new QueryWrapper<SeckillGoods>().eq("goods_id", goodsId));
+        Date startDate = seckillGoods.getStartDate();
+        Date endDate = seckillGoods.getEndDate();
+        Date nowDate = new Date();
+        if (nowDate.before(startDate)){
+            return RespBean.error(RespBeanEnum.REQUESTILLEGAL);
+        }else if (nowDate.after(endDate)){
+            return RespBean.error(RespBeanEnum.REQUESTILLEGAL);
+        }
+        if (user == null){
+            return RespBean.error(RespBeanEnum.SESSIONERROR);
+        }
+        String str = orderService.createPath(user, goodsId);
+        return RespBean.success(str);
+    }
+
+    /**
      * 系统初始化，将商品库存数量加载到redis
      * @throws Exception
      */
@@ -141,4 +176,5 @@ public class SecKillController implements InitializingBean {
             emptyStockMap.put(goodsVo.getId(), false);
         }
     }
+
 }
