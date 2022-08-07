@@ -23,7 +23,9 @@ public enum RespBeanEnum {
     REPEATEERROR(500501, "该商品每人限购一件"),
     SESSIONERROR(500215, "用户不存在"),
     ORDERNOTEXIST(500300, "订单信息不存在"),
-    REQUESTILLEGAL(500502, "请求非法，请重试")
+    REQUESTILLEGAL(500502, "请求非法，请重试"),
+    ERRORCAPTCHA(500503, "验证码错误，请重新输入"),
+    ACCESSLIMITREAHCED(500504, "访问过于频繁，请稍后再试")
     ;
 
 
